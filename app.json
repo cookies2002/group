@@ -1,35 +1,44 @@
 {
-  "name": "Madara-Uchiha-Leech-Bot",
-  "description": "A Termux/Heroku-ready Telegram leech bot with progress bar, multi-file, MongoDB log, and anti-spam features.",
-  "repository": "https://github.com/cookies2002/group",
-  "keywords": ["telegram", "aria2", "leech", "download", "upload", "bot"],
+  "name": "Madara Uchiha Group Leech Bot",
+  "description": "A powerful Telegram group leech bot with Aria2, MongoDB, progress bar, and multi-file support.",
+  "repository": "https://github.com/yourusername/madara-leech-bot",
+  "logo": "https://telegra.ph/file/6f84fc7c1145deae294f3.jpg",
+  "keywords": ["telegram", "aria2", "leech", "bot"],
   "env": {
     "API_ID": {
-      "description": "Your Telegram API ID",
+      "description": "Telegram API ID from https://my.telegram.org",
       "required": true
     },
     "API_HASH": {
-      "description": "Your Telegram API HASH",
+      "description": "Telegram API Hash from https://my.telegram.org",
       "required": true
     },
     "BOT_TOKEN": {
-      "description": "Telegram bot token from @BotFather",
+      "description": "Your bot token from BotFather",
       "required": true
     },
     "OWNER_ID": {
-      "description": "Your Telegram numeric ID",
+      "description": "Your Telegram numeric user ID",
       "required": true
     },
     "MONGO_URL": {
-      "description": "MongoDB connection URL",
+      "description": "MongoDB URI (from MongoDB Atlas)",
       "required": true
     }
   },
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ],
   "formation": {
     "worker": {
       "quantity": 1,
       "size": "free"
     }
   },
-  "stack": "container"
+  "addons": [],
+  "scripts": {
+    "postdeploy": "echo Bot deployed!"
+  }
 }
