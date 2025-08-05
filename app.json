@@ -1,7 +1,7 @@
 {
   "name": "Madara-Uchiha-Leech-Bot",
   "description": "A Termux/Heroku-ready Telegram leech bot with progress bar, multi-file, MongoDB log, and anti-spam features.",
-  "repository": "https://github.com/YOUR_USERNAME/YOUR_REPO",
+  "repository": "https://github.com/cookies2002/group",
   "keywords": ["telegram", "aria2", "leech", "download", "upload", "bot"],
   "env": {
     "API_ID": {
