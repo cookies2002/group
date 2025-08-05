@@ -1,50 +1,30 @@
 #!/bin/bash
 
-# ─── CONFIG START ────────────────────────────────────────────────
+# Madara Uchiha - Aria2 Daemon Starter
+# Compatible with Termux / Ubuntu / Heroku
 
-ARIA2_CONF="aria2.conf"
-ARIA2_SESSION="aria2.session"
-ARIA2_LOG="aria2.log"
+ARIA2_SECRET="madara123"
+DOWNLOAD_DIR="downloads"
 ARIA2_PORT=6800
-SECRET_TOKEN="your_secret_token"  # Optional: Use if you have RPC secret
+ARIA2_LOG="aria2.log"
 
-# ─── CONFIG END ──────────────────────────────────────────────────
+mkdir -p "$DOWNLOAD_DIR"
 
-# ─── CREATE DEFAULT SESSION FILE IF NOT EXISTS ───────────────────
-
-if [ ! -f "$ARIA2_SESSION" ]; then
-    touch "$ARIA2_SESSION"
-fi
-
-# ─── CREATE DEFAULT CONFIG IF NOT EXISTS ─────────────────────────
-
-if [ ! -f "$ARIA2_CONF" ]; then
-    cat > "$ARIA2_CONF" <<EOF
-dir=downloads
-file-allocation=falloc
-continue=true
-max-concurrent-downloads=10
-split=10
-min-split-size=1M
-max-connection-per-server=10
-disable-ipv6=true
-check-certificate=false
-
-input-file=${ARIA2_SESSION}
-save-session=${ARIA2_SESSION}
-save-session-interval=30
-log=${ARIA2_LOG}
-log-level=notice
-
-enable-rpc=true
-rpc-listen-all=true
-rpc-allow-origin-all=true
-rpc-listen-port=${ARIA2_PORT}
-rpc-secret=${SECRET_TOKEN}
-EOF
-fi
-
-# ─── START ARIA2C WITH CONFIG ────────────────────────────────────
-
-echo "Starting aria2c with config..."
-aria2c --conf-path="${ARIA2_CONF}"
+aria2c \
+  --enable-rpc=true \
+  --rpc-listen-port=$ARIA2_PORT \
+  --rpc-secret="$ARIA2_SECRET" \
+  --rpc-listen-all=true \
+  --rpc-allow-origin-all=true \
+  --dir="$DOWNLOAD_DIR" \
+  --max-connection-per-server=10 \
+  --continue=true \
+  --input-file=aria2.session \
+  --save-session=aria2.session \
+  --max-concurrent-downloads=5 \
+  --min-split-size=10M \
+  --split=10 \
+  --daemon=true \
+  --log="$ARIA2_LOG" \
+  --log-level=notice
+  
