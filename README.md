@@ -19,7 +19,7 @@ A powerful leech & upload Telegram bot using `Pyrogram`, `Aria2`, `MongoDB`. Sup
 
 Click the button below to deploy instantly to Heroku:
 
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/yourusername/Madara-Leech-Bot)
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/cookies2002/group)
 
 > 🔄 Replace `yourusername` with your actual GitHub username or repo link.
 
