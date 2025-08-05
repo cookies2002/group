@@ -1,12 +1,14 @@
 #!/bin/bash
-
 aria2c \
---enable-rpc \
---rpc-listen-all=true \
---rpc-allow-origin-all \
---rpc-secret=madara \
---max-connection-per-server=10 \
---min-split-size=10M \
---split=10 \
---dir=downloads \
---continue=true
+  --enable-rpc \
+  --rpc-listen-all=false \
+  --rpc-allow-origin-all \
+  --rpc-secret="myaria2secret" \
+  --rpc-listen-port=6800 \
+  --max-connection-per-server=10 \
+  --continue=true \
+  --dir="./downloads" \
+  --max-concurrent-downloads=5 \
+  --split=10 \
+  --min-split-size=5M
+  
