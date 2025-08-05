@@ -1,30 +1,24 @@
 #!/bin/bash
 
-# Madara Uchiha - Aria2 Daemon Starter
-# Compatible with Termux / Ubuntu / Heroku
+# Create necessary directories
+mkdir -p ~/.aria2
+touch ~/.aria2/aria2.session
 
-ARIA2_SECRET="madara123"
-DOWNLOAD_DIR="downloads"
-ARIA2_PORT=6800
-ARIA2_LOG="aria2.log"
-
-mkdir -p "$DOWNLOAD_DIR"
-
+# Aria2c configuration
 aria2c \
-  --enable-rpc=true \
-  --rpc-listen-port=$ARIA2_PORT \
-  --rpc-secret="$ARIA2_SECRET" \
+  --enable-rpc \
   --rpc-listen-all=true \
-  --rpc-allow-origin-all=true \
-  --dir="$DOWNLOAD_DIR" \
+  --rpc-allow-origin-all \
+  --rpc-secret=madara123 \
   --max-connection-per-server=10 \
   --continue=true \
-  --input-file=aria2.session \
-  --save-session=aria2.session \
+  --input-file=~/.aria2/aria2.session \
+  --save-session=~/.aria2/aria2.session \
+  --dir=downloads \
   --max-concurrent-downloads=5 \
-  --min-split-size=10M \
   --split=10 \
-  --daemon=true \
-  --log="$ARIA2_LOG" \
-  --log-level=notice
+  --min-split-size=1M \
+  --follow-torrent=mem \
+  --seed-time=0 \
+  --bt-save-metadata=true
   
