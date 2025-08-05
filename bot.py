@@ -1,11 +1,11 @@
 import os
+import shutil
 import asyncio
 import time
-import shutil
 from datetime import datetime
 
 from pyrogram import Client, filters
-from pyrogram.types import Message, Document
+from pyrogram.types import Message
 from aria2p import API, Client as Aria2Client
 from motor.motor_asyncio import AsyncIOMotorClient
 
@@ -14,7 +14,9 @@ from config import (
     DOWNLOAD_DIR, ARIA2_SECRET, ARIA2_HOST, ARIA2_PORT
 )
 
+# Constants
 MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024  # 2GB
+COOLDOWN_SECONDS = 180  # 3 minutes
 
 # Setup
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
@@ -22,9 +24,10 @@ aria2_client = Aria2Client(host=ARIA2_HOST, port=ARIA2_PORT, secret=ARIA2_SECRET
 aria2 = API(aria2_client)
 mongo = AsyncIOMotorClient(MONGO_URL)
 db = mongo.leech
+cooldowns = {}
 
 app = Client("leech-bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
-cooldowns = {}
+
 
 def format_progress(download):
     try:
@@ -32,39 +35,42 @@ def format_progress(download):
         done_length = int((download.completed_length / download.total_length) * total_length)
         bar = "█" * done_length + "░" * (total_length - done_length)
         return f"[{bar}] {download.progress_string()} ({download.download_speed_string()})"
-    except:
-        return "Fetching progress..."
+    except Exception:
+        return "⏳ Fetching progress..."
+
 
 @app.on_message(filters.command("leech") & filters.reply)
-async def leech(_, message: Message):
+async def leech_handler(_, message: Message):
     user = message.from_user
     now = time.time()
 
-    # Anti-spam
-    if user.id in cooldowns and now - cooldowns[user.id] < 180:
-        return await message.reply("⏳ Please wait 3 minutes before your next leech.")
+    # Cooldown check
+    if user.id in cooldowns and now - cooldowns[user.id] < COOLDOWN_SECONDS:
+        wait_time = int(COOLDOWN_SECONDS - (now - cooldowns[user.id]))
+        return await message.reply(f"⏳ Please wait {wait_time} seconds before leeching again.")
     cooldowns[user.id] = now
 
     reply = message.reply_to_message
     link = reply.text or reply.caption
-    torrent_file = None
+    torrent_file_path = None
 
-    # Support for uploaded .torrent files
     if reply.document and reply.document.file_name.endswith(".torrent"):
-        torrent_path = os.path.join(DOWNLOAD_DIR, reply.document.file_name)
-        await reply.download(file_name=torrent_path)
-        torrent_file = torrent_path
+        torrent_file_path = os.path.join(DOWNLOAD_DIR, reply.document.file_name)
+        await reply.download(file_name=torrent_file_path)
 
-    if not link and not torrent_file:
-        return await message.reply("❌ No valid link or .torrent file found.")
+    if not link and not torrent_file_path:
+        return await message.reply("❌ No valid magnet/link or .torrent file found.")
 
     status = await message.reply("📥 Starting download...")
+    download = None
+
     try:
-        if torrent_file:
-            download = aria2.add_torrent(torrent_file, options={"dir": DOWNLOAD_DIR})
+        if torrent_file_path:
+            download = aria2.add_torrent(torrent_file_path, options={"dir": DOWNLOAD_DIR})
         else:
             download = aria2.add_uris([link], options={"dir": DOWNLOAD_DIR})
 
+        # Progress loop
         while not download.is_complete and not download.is_removed:
             await asyncio.sleep(5)
             download = aria2.get_download(download.gid)
@@ -76,22 +82,24 @@ async def leech(_, message: Message):
         filepath = download.files[0].path
         final_path = filepath
 
-        # Multi-file: ZIP the folder
+        # Handle multi-file torrents
         if download.followed_by_ids or len(download.files) > 1:
             folder = os.path.dirname(filepath)
-            zip_name = f"{folder}.zip"
+            zip_name = os.path.basename(folder.rstrip("/")) + ".zip"
             final_path = os.path.join(DOWNLOAD_DIR, zip_name)
             shutil.make_archive(folder, 'zip', folder)
 
         file_size = os.path.getsize(final_path)
         if file_size > MAX_FILE_SIZE:
-            return await status.edit("❌ File too large to send (Telegram bot limit is 2GB).")
+            await status.edit("❌ File too large (Telegram limit is 2GB).")
+            return
 
-        await status.edit("📤 Uploading file to your DM...")
-        await app.send_document(user.id, final_path, caption="Here's your file 🎁")
-        await status.edit("✅ Sent to your DM!")
+        # Upload to user's DM
+        await status.edit("📤 Uploading to your DM...")
+        await app.send_document(user.id, final_path, caption="📦 Here's your file!")
+        await status.edit("✅ File sent to your DM!")
 
-        # Log to MongoDB
+        # Log
         await db.logs.insert_one({
             "user_id": user.id,
             "username": user.username,
@@ -102,29 +110,42 @@ async def leech(_, message: Message):
         })
 
     except Exception as e:
-        await status.edit("❌ Something went wrong.")
+        await status.edit("❌ Something went wrong while processing.")
         await app.send_message(OWNER_ID, f"⚠️ Error for {user.id}:\n{str(e)}")
+
     finally:
-        # Cleanup
+        # Clean up
         try:
-            if download.is_complete:
+            if download and download.is_complete:
                 if os.path.isdir(filepath):
                     shutil.rmtree(os.path.dirname(filepath), ignore_errors=True)
-                if os.path.exists(final_path):
+                elif os.path.exists(final_path):
                     os.remove(final_path)
-            if torrent_file and os.path.exists(torrent_file):
-                os.remove(torrent_file)
+            if torrent_file_path and os.path.exists(torrent_file_path):
+                os.remove(torrent_file_path)
         except:
             pass
 
+
 @app.on_message(filters.private & filters.command("start"))
-async def start(_, message):
+async def start(_, message: Message):
     await message.reply(
-        "👋 Welcome! Reply to a magnet, link, or torrent file with /leech in a group, "
-        "and I’ll download and DM the file to you."
+        "👋 Welcome to the Leech Bot!\n\n"
+        "📌 How to use:\n"
+        "➤ Send a magnet/link or .torrent file in a group\n"
+        "➤ Reply to it with `/leech`\n"
+        "I'll DM the file once it's downloaded ✅"
     )
 
+
+async def start_aria2():
+    """Start aria2 daemon with RPC enabled"""
+    process = await asyncio.create_subprocess_shell(
+        "bash aria.sh", stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL
+    )
+    await process.communicate()
+
+
 if __name__ == "__main__":
-    os.system("bash aria.sh &")
+    asyncio.get_event_loop().run_until_complete(start_aria2())
     app.run()
-    
