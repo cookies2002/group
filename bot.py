@@ -65,15 +65,39 @@ async def leech_handler(_, message: Message):
     download = None
 
     try:
+        # Add download with headers / trackers
         if torrent_file_path:
-            download = aria2.add_torrent(torrent_file_path, options={"dir": DOWNLOAD_DIR})
+            download = aria2.add_torrent(torrent_file_path, options={
+                "dir": DOWNLOAD_DIR,
+                "bt-tracker": "udp://tracker.openbittorrent.com:80,udp://tracker.opentrackr.org:1337"
+            })
         else:
-            download = aria2.add_uris([link], options={"dir": DOWNLOAD_DIR})
+            download = aria2.add_uris([link], options={
+                "dir": DOWNLOAD_DIR,
+                "user-agent": "Mozilla/5.0",
+                "referer": link
+            })
+
+        start_time = time.time()
 
         # Progress loop
-        while not download.is_complete and not download.is_removed:
+        while True:
             await asyncio.sleep(5)
             download = aria2.get_download(download.gid)
+
+            if download.is_complete:
+                break
+            elif download.status == "error":
+                await status.edit("❌ Download failed! Invalid or expired link/torrent.")
+                return
+            elif download.status == "removed":
+                await status.edit("❌ Download was removed.")
+                return
+            elif time.time() - start_time > 600:
+                await status.edit("⚠️ Download stuck for too long. Cancelled.")
+                aria2.remove([download], force=True, files=True)
+                return
+
             try:
                 await status.edit(f"📥 Downloading...\n{format_progress(download)}")
             except:
