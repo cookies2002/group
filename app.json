@@ -1,33 +1,23 @@
 {
-  "name": "Madara Uchiha Leech Bot",
-  "description": "A powerful Telegram leech and file-sharing bot with MongoDB support.",
-  "repository": "https://github.com/your-username/madara-leech-bot",
-  "keywords": ["telegram", "leech", "aria2", "mongodb", "pyrogram", "heroku"],
-  "buildpacks": [
-    {
-      "url": "heroku/python"
-    }
-  ],
+  "name": "Madara Leech Bot",
+  "description": "Telegram Group Leech Bot with Aria2 and MongoDB",
+  "repository": "https://github.com/yourusername/madara-leech-bot",
+  "keywords": ["telegram", "aria2", "pyrogram", "bot"],
   "env": {
     "API_ID": {
-      "description": "Get this from https://my.telegram.org",
-      "required": true
+      "description": "Get this from https://my.telegram.org"
     },
     "API_HASH": {
-      "description": "Get this from https://my.telegram.org",
-      "required": true
+      "description": "Get this from https://my.telegram.org"
     },
     "BOT_TOKEN": {
-      "description": "Bot token from @BotFather",
-      "required": true
+      "description": "Get from @BotFather"
     },
     "OWNER_ID": {
-      "description": "Your Telegram numeric user ID",
-      "required": true
+      "description": "Your Telegram ID"
     },
     "MONGO_URL": {
-      "description": "MongoDB connection URI",
-      "required": true
+      "description": "MongoDB URI with srv (from Atlas)"
     }
   },
   "formation": {
@@ -36,8 +26,5 @@
       "size": "free"
     }
   },
-  "addons": [],
-  "scripts": {
-    "postdeploy": "echo 'Bot Deployed Successfully!'"
-  }
+  "stack": "heroku-20"
 }
