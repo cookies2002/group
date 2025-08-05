@@ -1,3 +1,4 @@
+# bot.py
 import os
 import shutil
 import asyncio
@@ -59,14 +60,13 @@ async def leech_handler(_, message: Message):
     if not link and not torrent_file_path:
         return await message.reply("❌ No valid link or .torrent file found.")
 
-    status = await message.reply("📥 Downloading started...")
+    status = await message.reply("📅 Downloading started...")
     download = None
 
     try:
         if torrent_file_path:
             download = aria2.add_torrent(torrent_file_path, options={
-                "dir": DOWNLOAD_DIR,
-                "bt-tracker": "udp://tracker.openbittorrent.com:80,udp://tracker.opentrackr.org:1337"
+                "dir": DOWNLOAD_DIR
             })
         else:
             # Optional: validate the URL before adding it
@@ -92,7 +92,7 @@ async def leech_handler(_, message: Message):
             if download.is_complete:
                 break
             elif download.status == "error":
-                await status.edit("❌ Download failed! Invalid or expired source.")
+                await status.edit("❌ Download failed! Error in download.")
                 return
             elif download.status == "removed":
                 await status.edit("❌ Download was removed.")
@@ -103,7 +103,7 @@ async def leech_handler(_, message: Message):
                 return
 
             try:
-                await status.edit(f"📥 Downloading...\n{format_progress(download)}")
+                await status.edit(f"📅 Downloading...\n{format_progress(download)}")
             except:
                 pass
 
@@ -172,7 +172,7 @@ async def logs_callback(client, callback_query):
     if not logs:
         return await callback_query.answer("No logs found.", show_alert=True)
 
-    text = "🧾 **Your Recent Logs:**\n"
+    text = "🗞 **Your Recent Logs:**\n"
     for log in logs:
         text += f"• `{log['filename']}` - {round(log['size'] / 1024 / 1024, 2)} MB\n"
 
@@ -190,4 +190,3 @@ async def start_aria2():
 if __name__ == "__main__":
     asyncio.get_event_loop().run_until_complete(start_aria2())
     app.run()
-    
