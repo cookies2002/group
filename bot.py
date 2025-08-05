@@ -14,9 +14,8 @@ from config import (
     DOWNLOAD_DIR, ARIA2_SECRET, ARIA2_HOST, ARIA2_PORT
 )
 
-# Constants
-MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024  # Telegram max 2GB
-COOLDOWN_SECONDS = 180  # User cooldown
+MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024  # 2GB
+COOLDOWN_SECONDS = 180  # 3 mins cooldown
 
 # Setup
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
@@ -26,12 +25,9 @@ mongo = AsyncIOMotorClient(MONGO_URL)
 db = mongo.leech
 cooldowns = {}
 
-# Bot App
 app = Client("leech-bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
-
 def format_progress(download):
-    """Return progress bar for download status."""
     try:
         total_length = 30
         done_length = int((download.completed_length / download.total_length) * total_length)
@@ -40,23 +36,22 @@ def format_progress(download):
     except:
         return "⏳ Fetching progress..."
 
-
 @app.on_message(filters.command("leech") & filters.reply)
 async def leech_handler(_, message: Message):
     user = message.from_user
-    now = time.time()
+    if user.id != OWNER_ID:
+        return await message.reply("🚫 You're not authorized to use this bot.")
 
-    # Cooldown enforcement
+    now = time.time()
     if user.id in cooldowns and now - cooldowns[user.id] < COOLDOWN_SECONDS:
         wait = int(COOLDOWN_SECONDS - (now - cooldowns[user.id]))
-        return await message.reply(f"⏳ Please wait {wait} seconds before next leech.")
+        return await message.reply(f"⏳ Please wait {wait} seconds before using /leech again.")
     cooldowns[user.id] = now
 
     reply = message.reply_to_message
     link = reply.text or reply.caption
     torrent_file_path = None
 
-    # If it's a .torrent file
     if reply.document and reply.document.file_name.endswith(".torrent"):
         torrent_file_path = os.path.join(DOWNLOAD_DIR, reply.document.file_name)
         await reply.download(file_name=torrent_file_path)
@@ -68,13 +63,20 @@ async def leech_handler(_, message: Message):
     download = None
 
     try:
-        # Start download via Aria2
         if torrent_file_path:
             download = aria2.add_torrent(torrent_file_path, options={
                 "dir": DOWNLOAD_DIR,
                 "bt-tracker": "udp://tracker.openbittorrent.com:80,udp://tracker.opentrackr.org:1337"
             })
         else:
+            # Optional: validate the URL before adding it
+            import aiohttp
+            async with aiohttp.ClientSession() as session:
+                async with session.head(link, timeout=10) as resp:
+                    if resp.status >= 400:
+                        await status.edit("❌ Download failed! Invalid or expired source.")
+                        return
+
             download = aria2.add_uris([link], options={
                 "dir": DOWNLOAD_DIR,
                 "user-agent": "Mozilla/5.0",
@@ -83,7 +85,6 @@ async def leech_handler(_, message: Message):
 
         start_time = time.time()
 
-        # Progress updater loop
         while True:
             await asyncio.sleep(5)
             download = aria2.get_download(download.gid)
@@ -109,7 +110,6 @@ async def leech_handler(_, message: Message):
         filepath = download.files[0].path
         final_path = filepath
 
-        # If multi-file, zip it
         if download.followed_by_ids or len(download.files) > 1:
             folder = os.path.dirname(filepath)
             zip_name = os.path.basename(folder.rstrip("/")) + ".zip"
@@ -121,12 +121,10 @@ async def leech_handler(_, message: Message):
             await status.edit("❌ File too large for Telegram (limit: 2GB).")
             return
 
-        # Uploading to DM
         await status.edit("📤 Uploading to your DM...")
         await app.send_document(user.id, final_path, caption="📦 Here's your file!")
         await status.edit("✅ File delivered in your DM!")
 
-        # Logging in DB
         await db.logs.insert_one({
             "user_id": user.id,
             "username": user.username,
@@ -138,10 +136,9 @@ async def leech_handler(_, message: Message):
 
     except Exception as e:
         await status.edit("❌ Error occurred during processing.")
-        await app.send_message(OWNER_ID, f"⚠️ Error for {user.id}: {str(e)}")
+        await app.send_message(OWNER_ID, f"⚠️ Error for {user.id}: `{str(e)}`")
 
     finally:
-        # Cleanup files
         try:
             if download and download.is_complete:
                 if os.path.isdir(filepath):
@@ -152,7 +149,6 @@ async def leech_handler(_, message: Message):
                 os.remove(torrent_file_path)
         except:
             pass
-
 
 @app.on_message(filters.private & filters.command("start"))
 async def start(_, message: Message):
@@ -169,7 +165,6 @@ async def start(_, message: Message):
         quote=True
     )
 
-
 @app.on_callback_query(filters.regex("logs"))
 async def logs_callback(client, callback_query):
     user_id = callback_query.from_user.id
@@ -184,16 +179,13 @@ async def logs_callback(client, callback_query):
     await callback_query.message.reply(text, quote=True)
     await callback_query.answer()
 
-
 async def start_aria2():
-    """Start aria2 with shell script."""
     process = await asyncio.create_subprocess_shell(
         "bash aria.sh",
         stdout=asyncio.subprocess.DEVNULL,
         stderr=asyncio.subprocess.DEVNULL
     )
     await process.communicate()
-
 
 if __name__ == "__main__":
     asyncio.get_event_loop().run_until_complete(start_aria2())
