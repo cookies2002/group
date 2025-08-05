@@ -13,5 +13,5 @@ MONGO_URL = os.getenv("MONGO_URL")  # MongoDB connection string
 # Aria2 Configuration
 ARIA2_HOST = os.getenv("ARIA2_HOST", "http://localhost")
 ARIA2_PORT = int(os.getenv("ARIA2_PORT", "6800"))
-ARIA2_SECRET = os.getenv("ARIA2_SECRET", "")
+ARIA2_SECRET = os.getenv("ARIA2_SECRET", "madara123")
 DOWNLOAD_DIR = os.getenv("DOWNLOAD_DIR", "./downloads")
