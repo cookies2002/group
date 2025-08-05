@@ -1,23 +1,44 @@
 {
-  "name": "Madara Leech Bot",
-  "description": "Telegram Group Leech Bot with Aria2 and MongoDB",
-  "repository": "https://github.com/yourusername/madara-leech-bot",
-  "keywords": ["telegram", "aria2", "pyrogram", "bot"],
+  "name": "pyrogram-leech-bot",
+  "description": "A Telegram bot to download and leech torrents via Aria2 and upload to Telegram.",
+  "repository": "https://github.com/yourusername/yourrepo",
+  "keywords": ["telegram", "aria2", "torrent", "leech", "pyrogram"],
   "env": {
     "API_ID": {
-      "description": "Get this from https://my.telegram.org"
+      "description": "Your Telegram API ID",
+      "required": true
     },
     "API_HASH": {
-      "description": "Get this from https://my.telegram.org"
+      "description": "Your Telegram API HASH",
+      "required": true
     },
     "BOT_TOKEN": {
-      "description": "Get from @BotFather"
+      "description": "Bot Token from BotFather",
+      "required": true
     },
     "OWNER_ID": {
-      "description": "Your Telegram ID"
+      "description": "Your Telegram User ID",
+      "required": true
     },
     "MONGO_URL": {
-      "description": "MongoDB URI with srv (from Atlas)"
+      "description": "MongoDB connection URI",
+      "required": true
+    },
+    "ARIA2_SECRET": {
+      "description": "Secret token to secure aria2 RPC",
+      "required": false
+    },
+    "ARIA2_HOST": {
+      "description": "Aria2 RPC host",
+      "value": "http://localhost"
+    },
+    "ARIA2_PORT": {
+      "description": "Aria2 RPC port",
+      "value": "6800"
+    },
+    "DOWNLOAD_DIR": {
+      "description": "Download directory",
+      "value": "downloads"
     }
   },
   "formation": {
@@ -26,5 +47,5 @@
       "size": "free"
     }
   },
-  "stack": "heroku-20"
+  "stack": "container"
 }
