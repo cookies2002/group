@@ -1,9 +1,7 @@
 #!/bin/bash
 
-# Create download directory if it doesn't exist
 mkdir -p downloads
 
-# Start aria2c with RPC enabled
 aria2c --enable-rpc \
   --rpc-listen-all=true \
   --rpc-allow-origin-all \
@@ -14,5 +12,6 @@ aria2c --enable-rpc \
   --min-split-size=1M \
   --max-concurrent-downloads=5 \
   --rpc-secret=madara123 \
-  --continue=true
+  --continue=true &
   
+python3 bot.py
