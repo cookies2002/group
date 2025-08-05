@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Create downloads directory if it doesn't exist
+# ✅ Create downloads directory if not exist
 mkdir -p downloads
 
-# Start aria2c in background with RPC options
+# ✅ Start aria2c in background with RPC options
 aria2c --enable-rpc \
   --rpc-listen-all=true \
   --rpc-allow-origin-all \
